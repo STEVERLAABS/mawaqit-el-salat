@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>مواقيت الصلاة | مسجد سيدي عبد المومن – المحمدية معسكر</title>
-<link rel="stylesheet" href="style.css?v=2" />
+<link rel="stylesheet" href="style.css?v=3" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet" />
@@ -55,6 +55,23 @@
 
   <button id="gear" title="الإعدادات (S)">⚙</button>
 
+  <!-- زر تفعيل الصوت (شهادة أول نقرة — يختفي بعد التفعيل) -->
+  <button id="soundUnlock">🔊 اضغط هنا لتفعيل صوت الأذان</button>
+
+  <!-- شاشة الأذان عند دخول وقت الصلاة -->
+  <div id="azanOverlay" class="hidden">
+    <div class="azan-inner">
+      <p class="azan-kabir">الله أكبر — الله أكبر</p>
+      <p class="azan-title">حان الآن وقت صلاة</p>
+      <h2 id="azanName" class="azan-name">—</h2>
+      <p class="azan-sub">حَيَّ عَلَى الصَّلَاة — حَيَّ عَلَى الْفَلَاح</p>
+    </div>
+  </div>
+
+  <!-- ملفات الأذان (محلية داخل المستودع) -->
+  <audio id="azanAudio" src="adhan.mp3" preload="auto"></audio>
+  <audio id="azanFajrAudio" src="adhan-fajr.mp3" preload="auto"></audio>
+
   <!-- لوحة الإدارة -->
   <div id="settings" class="modal hidden" role="dialog" aria-modal="true">
     <div class="box">
@@ -86,6 +103,15 @@
             <input name="adhkarMinutes" type="number" min="1" max="60" />
           </label>
         </fieldset>
+        <fieldset>
+          <legend>الأذان</legend>
+          <label class="check">
+            <input name="adhanSound" type="checkbox" /> تشغيل صوت الأذان تلقائيًا عند دخول الوقت
+          </label>
+          <label>مستوى الصوت (0 - 100)
+            <input name="adhanVolume" type="number" min="0" max="100" />
+          </label>
+        </fieldset>
         <div class="actions">
           <button type="submit" class="primary">حفظ</button>
           <button type="button" id="resetBtn">استعادة الافتراضي</button>
@@ -97,6 +123,6 @@
   </div>
 </div>
 
-<script src="script.js?v=2"></script>
+<script src="script.js?v=3"></script>
 </body>
 </html>

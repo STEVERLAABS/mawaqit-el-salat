@@ -19,7 +19,9 @@ const DEFAULTS = {
   fajrAngle: 18,
   ishaAngle: 17,
   asrFactor: 1,      // 1 = الجمهور ، 2 = الحنفي
-  adhkarMinutes: 15  // مدة أذكار ما بعد الصلاة
+  adhkarMinutes: 15, // مدة أذكار ما بعد الصلاة
+  adhanSound: true,  // تشغيل صوت الأذان
+  adhanVolume: 80    // مستوى الصوت (0-100)
 };
 
 const PRAYERS = [
@@ -57,7 +59,67 @@ const TICKER = [
   'لا إله إلا أنت سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِين',
   'قال الله تعالى: «أَقِمِ الصَّلَاةَ لِدُلُوكِ الشَّمْسِ إِلَى غَسَقِ اللَّيْلِ»'
 ];
-/* ---------- أدوات ---------- */
+/* ---------- أدوات الأذان ---------- */
+const AZAN_WINDOW_SEC = 90;           // نافذة تشغيل الأذان بعد دخول الوقت
+const AZAN_FILES = {
+  fajr: 'adhan-fajr.mp3',             // أذان الفجر: «الصلاة خير من النوم»
+  other: 'adhan.mp3'                  // أذان مكة المكرمة
+};
+let azanFiredKey = null;              // مفتاح الأذان المشغّل حاليًا (يمنع التكرار)
+let audioUnlocked = localStorage.getItem('mqpt_azan_unlocked') === '1';
+
+const azanAudio = $('azanAudio');
+const azanFajrAudio = $('azanFajrAudio');
+const AUDIO = { fajr: azanFajrAudio, other: azanAudio };
+
+function setAudioVolume() {
+  const v = clamp((S.adhanVolume ?? 80) / 100, 0, 1);
+  azanAudio.volume = v;
+  azanFajrAudio.volume = v;
+}
+
+/* تفعيل الصوت: يتطلب تفاعل المستخدم مرة واحدة */
+function unlockAudio() {
+  audioUnlocked = true;
+  try { localStorage.setItem('mqpt_azan_unlocked', '1'); } catch (e) {}
+  try { window.AudioContext && new AudioContext().resume(); } catch (e) {}
+  Object.values(AUDIO).forEach(a => a.play().then(() => {
+    a.pause(); a.currentTime = 0;
+  }).catch(() => {}));
+  $('soundUnlock').classList.add('hidden');
+}
+
+/* تشغيل الأذان عند دخول الوقت */
+function fireAdhan(key) {
+  if (!S.adhanSound || !audioUnlocked) return;
+  azanFiredKey = key;
+  const audio = AUDIO[key === 'fajr' ? 'fajr' : 'other'];
+  try { Object.values(AUDIO).forEach(a => { a.pause(); }); } catch (e) {}
+  audio.currentTime = 0;
+  setAudioVolume();
+  audio.play().catch(() => {
+    // فشل التشغيل (سياسة المتصفح) — إظهار زر التفعيل
+    audioUnlocked = false;
+    $('soundUnlock').classList.remove('hidden');
+    $('soundUnlock').classList.add('urgent');
+    hideAdhanOverlay();
+  });
+  $('azanName').textContent = PRAYERS.find(p => p.key === key).name;
+  $('azanOverlay').classList.remove('hidden');
+  document.getElementById('app').classList.add('azan-active');
+}
+
+function hideAdhanOverlay() {
+  $('azanOverlay').classList.add('hidden');
+  document.getElementById('app').classList.remove('azan-active');
+}
+
+[azanAudio, azanFajrAudio].forEach(a => a.addEventListener('ended', () => {
+  hideAdhanOverlay();
+  azanFiredKey = null;
+}));
+
+
 const rad = d => (d * Math.PI) / 180;
 const deg = r => (r * 180) / Math.PI;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -218,6 +280,17 @@ function tick() {
   if (next) $(`row-${next.key}`).classList.add('next');
   if (prev) $(`row-${prev.key}`).classList.add('current');
 
+  // فحص دخول الأوقات وتشغيل الأذان
+  const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  for (const p of seq) {
+    const ss = Math.round((nowH - p.t) * 3600);
+    const dayKey = `${ds}-${p.key}`;
+    if (ss >= 0 && ss <= AZAN_WINDOW_SEC && azanFiredKey !== dayKey) {
+      azanFiredKey = dayKey;
+      if (S.adhanSound && audioUnlocked) fireAdhan(p.key);
+    }
+  }
+
   // العد التنازلي
   const hoursToNext = next.t - (now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600);
   const remaining = Math.max(0, Math.round(hoursToNext * 3600));
@@ -275,7 +348,11 @@ function tick() {
 /* ---------- الإعدادات ---------- */
 function openSettings() {
   const f = $('settingsForm');
-  Object.keys(S).forEach(k => f[k] && (f[k].value = S[k]));
+  Object.keys(S).forEach(k => {
+    if (!f[k]) return;
+    if (f[k].type === 'checkbox') f[k].checked = !!S[k];
+    else f[k].value = S[k];
+  });
   $('settings').classList.remove('hidden');
 }
 function closeSettings() { $('settings').classList.add('hidden'); }
@@ -295,6 +372,9 @@ function bindSettings() {
     });
     ['lat', 'lng', 'tz', 'elevation', 'fajrAngle', 'ishaAngle', 'asrFactor', 'adhkarMinutes']
       .forEach(k => { if (f[k]) S[k] = parseFloat(f[k].value) || DEFAULTS[k]; });
+    if (f.adhanSound) S.adhanSound = f.adhanSound.checked;
+    if (f.adhanVolume) S.adhanVolume = clamp(parseInt(f.adhanVolume.value || '80', 10), 0, 100);
+    setAudioVolume();
     saveSettings();
     applyIdentity();
     todayTimes = null; // إعادة حساب
@@ -354,8 +434,15 @@ function toggleFullscreen() {
 /* ---------- الإطلاق ---------- */
 buildRows();
 applyIdentity();
+setAudioVolume();
 bindSettings();
 bindInput();
+
+// زر تفعيل الصوت + أي نقرة أولى على الشاشة تفعّل الصوت
+$('soundUnlock').addEventListener('click', e => { e.stopPropagation(); unlockAudio(); });
+document.addEventListener('click', () => { if (!audioUnlocked) unlockAudio(); });
+if (audioUnlocked) $('soundUnlock').classList.add('hidden');
+
 $('ticker').textContent = TICKER[0];
 $('adhkarText').textContent = POST_ADHKAR[0];
 $('countdown').parentElement && ($('countdown').textContent = '--:--:--');
