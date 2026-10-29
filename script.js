@@ -65,12 +65,6 @@ const AZAN_FILES = {
   fajr: 'adhan-fajr.mp3',             // أذان الفجر: «الصلاة خير من النوم»
   other: 'adhan.mp3'                  // أذان مكة المكرمة
 };
-let azanFiredKey = null;              // مفتاح الأذان المشغّل حاليًا (يمنع التكرار)
-let audioUnlocked = localStorage.getItem('mqpt_azan_unlocked') === '1';
-
-const azanAudio = $('azanAudio');
-const azanFajrAudio = $('azanFajrAudio');
-const AUDIO = { fajr: azanFajrAudio, other: azanAudio };
 
 function setAudioVolume() {
   const v = clamp((S.adhanVolume ?? 80) / 100, 0, 1);
@@ -124,6 +118,13 @@ const rad = d => (d * Math.PI) / 180;
 const deg = r => (r * 180) / Math.PI;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const $ = id => document.getElementById(id);
+
+/* عناصر الأذان */
+let azanFiredKey = null;              // مفتاح الأذان المشغّل حاليًا (يمنع التكرار)
+let audioUnlocked = localStorage.getItem('mqpt_azan_unlocked') === '1';
+const azanAudio = $('azanAudio');
+const azanFajrAudio = $('azanFajrAudio');
+const AUDIO = { fajr: azanFajrAudio, other: azanAudio };
 
 function loadSettings() {
   try {
