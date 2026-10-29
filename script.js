@@ -108,11 +108,6 @@ function hideAdhanOverlay() {
   document.getElementById('app').classList.remove('azan-active');
 }
 
-[azanAudio, azanFajrAudio].forEach(a => a.addEventListener('ended', () => {
-  hideAdhanOverlay();
-  azanFiredKey = null;
-}));
-
 
 const rad = d => (d * Math.PI) / 180;
 const deg = r => (r * 180) / Math.PI;
@@ -125,6 +120,11 @@ let audioUnlocked = localStorage.getItem('mqpt_azan_unlocked') === '1';
 const azanAudio = $('azanAudio');
 const azanFajrAudio = $('azanFajrAudio');
 const AUDIO = { fajr: azanFajrAudio, other: azanAudio };
+
+[azanAudio, azanFajrAudio].forEach(a => a.addEventListener('ended', () => {
+  hideAdhanOverlay();
+  azanFiredKey = null;
+}));
 
 function loadSettings() {
   try {
