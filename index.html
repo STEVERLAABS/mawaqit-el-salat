@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>مواقيت الصلاة | مسجد سيدي عبد المومن – المحمدية معسكر</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="msjid">
+      <div class="logo">🕌</div>
+      <div>
+        <h1 id="mosqueName">مسجد سيدي عبد المومن</h1>
+        <p id="cityName">مقطع مناور سيدي عبد المومن — المحمدية، معسكر</p>
+      </div>
+    </div>
+    <div class="dates">
+      <div id="hijriDate" class="hijri">—</div>
+      <div id="gregDate" class="greg">—</div>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+
+  <main>
+    <aside id="prayers">
+      <!-- الصفوف تُبنى تلقائيًا -->
+    </aside>
+
+    <section id="panel">
+      <div class="card next-card">
+        <p class="label">الصلاة القادمة</p>
+        <h2 id="nextName">—</h2>
+        <div id="countdown">--:--:--</div>
+        <p id="nextTime" class="at">بعد قليل</p>
+      </div>
+
+      <div class="card adhkar-card hidden" id="adhkarCard">
+        <p class="label">أذكار ما بعد الصلاة</p>
+        <p id="adhkarText" class="adhkarText">أستغفر الله العظيم وأتوب إليه</p>
+        <p id="adhkarSub" class="dhikr-sub">سبحان الله وبحمده، سبحان الله العظيم</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span class="qibla" id="qibla">اتجاه القبلة: —</span>
+    <p id="ticker" class="ticker">أستغفر الله العظيم وأتوب إليه</p>
+  </footer>
+
+  <button id="gear" title="الإعدادات (S)">⚙</button>
+
+  <!-- لوحة الإدارة -->
+  <div id="settings" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="box">
+      <h3>الإعدادات — لوحة الإدارة</h3>
+      <form id="settingsForm">
+        <fieldset>
+          <legend>المسجد</legend>
+          <label>اسم المسجد <input name="mosqueName" /></label>
+          <label>المدينة / الجهة <input name="city" /></label>
+          <label>إمام المسجد <input name="imam" /></label>
+          <label>هاتف المسؤول <input name="phone" /></label>
+          <label>العنوان <input name="address" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>الحساب الفلكي</legend>
+          <label>العربيّة (lat) <input name="lat" type="number" step="0.0001" /></label>
+          <label>الطول (lng) <input name="lng" type="number" step="0.0001" /></label>
+          <label>المنطقة الزمنية <input name="tz" type="number" step="0.5" /></label>
+          <label>ارتفاع المكان (م) <input name="elevation" type="number" step="1" /></label>
+          <label>زاوية الفجر <input name="fajrAngle" type="number" step="0.1" /></label>
+          <label>زاوية العشاء <input name="ishaAngle" type="number" step="0.1" /></label>
+          <label>طريقة الظهر (1 جمهور / 2 حنفي)
+            <select name="asrFactor"><option value="1">1 — الجمهور</option><option value="2">2 — الحنفي</option></select>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>الأذكار</legend>
+          <label>مدة عرض أذكار ما بعد الصلاة (دقيقة)
+            <input name="adhkarMinutes" type="number" min="1" max="60" />
+          </label>
+        </fieldset>
+        <div class="actions">
+          <button type="submit" class="primary">حفظ</button>
+          <button type="button" id="resetBtn">استعادة الافتراضي</button>
+          <button type="button" id="closeBtn">إغلاق</button>
+        </div>
+      </form>
+      <p class="hint">اختصارات: S = الإعدادات ، F = شاشة كاملة ، Esc = إغلاق</p>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
