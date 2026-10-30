@@ -21,7 +21,8 @@ const DEFAULTS = {
   asrFactor: 1,      // 1 = الجمهور ، 2 = الحنفي
   adhkarMinutes: 15, // مدة أذكار ما بعد الصلاة
   adhanSound: true,  // تشغيل صوت الأذان
-  adhanVolume: 80    // مستوى الصوت (0-100)
+  adhanVolume: 80,   // مستوى الصوت (0-100)
+  hijriOffset: 0     // تصحيح التاريخ الهجري بالأيام (-3 إلى +3)
 };
 
 const PRAYERS = [
@@ -228,11 +229,15 @@ function qiblaAngle(lat, lng) {
   return ((deg(Math.atan2(y, x)) % 360) + 360) % 360;
 }
 
-/* التاريخ الهجري (تقويم أم القرى المتوفر في المتصفح) */
+/* التاريخ الهجري (تقويم أم القرى) مع تصحيح اختياري لمطابقة الإعلان الرسمي */
 function hijriStr(d) {
   try {
-    return new Intl.DateTimeFormat('ar-DZ-u-ca-islamic-umalqura',
-      { day: 'numeric', month: 'long', year: 'numeric' }).format(d).replace('م', 'هـ');
+    const adj = new Date(d);
+    adj.setDate(adj.getDate() + (parseInt(S.hijriOffset, 10) || 0));
+    const parts = new Intl.DateTimeFormat('ar-DZ-u-ca-islamic-umalqura',
+      { day: 'numeric', month: 'long', year: 'numeric' }).formatToParts(adj);
+    const get = t => (parts.find(p => p.type === t) || {}).value || '';
+    return `${get('day')} ${get('month')} ${get('year')} هـ`;
   } catch (e) {
     return '';
   }
@@ -280,11 +285,14 @@ function hijriParts(d) {
   }
 }
 
-/* أول أيام رمضان القادم (تقويم أم القرى) */
+/* أول أيام رمضان القادم (تقويم أم القرى + تصحيح محلي) */
 function findNextRamadan(from) {
+  const off = parseInt(S.hijriOffset, 10) || 0;
   const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
   for (let i = 0; i < 400; i++) {
-    const p = hijriParts(d);
+    const adj = new Date(d);
+    adj.setDate(adj.getDate() + off);
+    const p = hijriParts(adj);
     if (p && p.month === 9 && p.day === 1) {
       return { date: new Date(d), year: p.year };
     }
@@ -445,8 +453,12 @@ function bindSettings() {
     ['mosqueName', 'city', 'imam', 'phone', 'address'].forEach(k => {
       if (f[k]) S[k] = String(f[k].value).trim();
     });
-    ['lat', 'lng', 'tz', 'elevation', 'fajrAngle', 'ishaAngle', 'asrFactor', 'adhkarMinutes']
-      .forEach(k => { if (f[k]) S[k] = parseFloat(f[k].value) || DEFAULTS[k]; });
+    ['lat', 'lng', 'tz', 'elevation', 'fajrAngle', 'ishaAngle', 'asrFactor', 'adhkarMinutes', 'hijriOffset']
+      .forEach(k => {
+        if (!f[k]) return;
+        const v = parseFloat(f[k].value);
+        S[k] = Number.isFinite(v) ? v : DEFAULTS[k];
+      });
     if (f.adhanSound) S.adhanSound = f.adhanSound.checked;
     if (f.adhanVolume) S.adhanVolume = clamp(parseInt(f.adhanVolume.value || '80', 10), 0, 100);
     setAudioVolume();
