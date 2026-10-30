@@ -193,7 +193,7 @@ main {
 /* ===== التذييل ===== */
 footer {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto 1fr;
   align-items: center;
   gap: 2vw;
   border-top: 1px solid rgba(255,255,255,.1);
@@ -206,6 +206,10 @@ footer {
   border: 1px solid rgba(217,180,90,.35);
   border-radius: 999px;
   padding: .35em 1.2em;
+}
+.ramadan {
+  color: #9be3c8;
+  border-color: rgba(120,220,180,.4);
 }
 .ticker {
   font-family: "Amiri", serif;

@@ -83,20 +83,43 @@ function unlockAudio() {
   $('soundUnlock').classList.add('hidden');
 }
 
+/* محاولة تفعيل الصوت تلقائيًا (تعمل على التلفازات ووضع Kiosk) */
+function tryAutoUnlock() {
+  if (audioUnlocked) return;
+  const probe = azanAudio;
+  probe.muted = true;
+  const p = probe.play();
+  if (p && p.then) {
+    p.then(() => {
+      probe.pause();
+      probe.currentTime = 0;
+      probe.muted = false;
+      audioUnlocked = true;
+      try { localStorage.setItem('mqpt_azan_unlocked', '1'); } catch (e) {}
+      $('soundUnlock').classList.add('hidden');
+    }).catch(() => {
+      probe.muted = false;
+    });
+  }
+}
+
 /* تشغيل الأذان عند دخول الوقت */
 function fireAdhan(key) {
-  if (!S.adhanSound || !audioUnlocked) return;
+  if (!S.adhanSound) return;
   azanFiredKey = key;
   const audio = AUDIO[key === 'fajr' ? 'fajr' : 'other'];
   try { Object.values(AUDIO).forEach(a => { a.pause(); }); } catch (e) {}
   audio.currentTime = 0;
   setAudioVolume();
-  audio.play().catch(() => {
+  audio.play().then(() => {
+    audioUnlocked = true;
+    try { localStorage.setItem('mqpt_azan_unlocked', '1'); } catch (e) {}
+    $('soundUnlock').classList.add('hidden');
+  }).catch(() => {
     // فشل التشغيل (سياسة المتصفح) — إظهار زر التفعيل
     audioUnlocked = false;
     $('soundUnlock').classList.remove('hidden');
     $('soundUnlock').classList.add('urgent');
-    hideAdhanOverlay();
   });
   $('azanName').textContent = PRAYERS.find(p => p.key === key).name;
   $('azanOverlay').classList.remove('hidden');
@@ -243,12 +266,63 @@ function renderTimes(times) {
   });
 }
 
+/* ---------- عدّاد رمضان ---------- */
+let ramadanCache = { day: '', start: null, year: 0 };
+
+function hijriParts(d) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',
+      { day: 'numeric', month: 'numeric', year: 'numeric' }).formatToParts(d);
+    const get = t => parseInt((parts.find(p => p.type === t) || {}).value, 10);
+    return { day: get('day'), month: get('month'), year: get('year') };
+  } catch (e) {
+    return null;
+  }
+}
+
+/* أول أيام رمضان القادم (تقويم أم القرى) */
+function findNextRamadan(from) {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for (let i = 0; i < 400; i++) {
+    const p = hijriParts(d);
+    if (p && p.month === 9 && p.day === 1) {
+      return { date: new Date(d), year: p.year };
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return null;
+}
+
+function renderRamadanChip(now) {
+  const key = now.toDateString();
+  if (ramadanCache.day !== key || !ramadanCache.start) {
+    ramadanCache = { day: key, start: findNextRamadan(now), year: 0 };
+    if (ramadanCache.start) ramadanCache.year = ramadanCache.start.year;
+  }
+  const chip = $('ramadanChip');
+  if (!chip) return;
+  const start = ramadanCache.start;
+  if (!start) { chip.textContent = '🌙 رمضان: —'; return; }
+
+  const diff = start.date.getTime() - now.getTime();
+  if (diff <= 0) {
+    chip.textContent = `🌙 رمضان ${ramadanCache.year} مبارك — تقبّل الله صيامكم`;
+    return;
+  }
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  chip.textContent = days > 0
+    ? `🌙 باقي ${days} يومًا و ${hours} سا على رمضان ${ramadanCache.year}`
+    : `🌙 باقي ${hours} ساعة على رمضان ${ramadanCache.year}`;
+}
+
 /* ---------- المنطق الرئيسي ---------- */
 let lastAdhkarIdx = 0, lastTickerIdx = 0;
 
 function tick() {
   const now = new Date();
   $('clock').textContent = fmtClock(now);
+  renderRamadanChip(now);
 
   // إعادة حساب عند تغيير اليوم
   const ds = now.toDateString();
@@ -288,7 +362,7 @@ function tick() {
     const dayKey = `${ds}-${p.key}`;
     if (ss >= 0 && ss <= AZAN_WINDOW_SEC && azanFiredKey !== dayKey) {
       azanFiredKey = dayKey;
-      if (S.adhanSound && audioUnlocked) fireAdhan(p.key);
+      if (S.adhanSound) fireAdhan(p.key);
     }
   }
 
@@ -442,7 +516,17 @@ bindInput();
 // زر تفعيل الصوت + أي نقرة أولى على الشاشة تفعّل الصوت
 $('soundUnlock').addEventListener('click', e => { e.stopPropagation(); unlockAudio(); });
 document.addEventListener('click', () => { if (!audioUnlocked) unlockAudio(); });
+document.addEventListener('keydown', () => { if (!audioUnlocked) unlockAudio(); });
+document.addEventListener('pointerdown', () => { if (!audioUnlocked) unlockAudio(); });
 if (audioUnlocked) $('soundUnlock').classList.add('hidden');
+
+// محاولة تفعيل الصوت تلقائيًا عند الإقلاع (وضع Kiosk / تلفاز)
+tryAutoUnlock();
+setTimeout(tryAutoUnlock, 2500);
+setTimeout(tryAutoUnlock, 8000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) tryAutoUnlock();
+});
 
 $('ticker').textContent = TICKER[0];
 $('adhkarText').textContent = POST_ADHKAR[0];
